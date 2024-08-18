@@ -30,8 +30,6 @@ pub fn build(b: *std.Build) !void {
             .windows => {
                 ltask.linkSystemLibrary("winmm");
                 ltask.linkSystemLibrary("ws2_32");
-
-                ltask.addIncludePath(b.path("compat"));
             },
             .linux => {
                 ltask.linkSystemLibrary("pthread");
