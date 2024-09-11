@@ -8,6 +8,7 @@ const targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .gnu },
 };
 
+pub var ltask_base_path: []const u8 = ".";
 pub fn build(b: *std.Build) !void {
     for (targets) |t| {
         const target = b.resolveTargetQuery(t);
@@ -49,7 +50,11 @@ pub fn build(b: *std.Build) !void {
         const lua_src = b.dependency("lua", .{});
         ltask.addIncludePath(lua_src.path("src"));
 
-        const ltask_src_path = "ltask/src";
+        const ltask_src_path = b.pathJoin(&[_][]const u8{
+            ltask_base_path,
+            "ltask",
+            "src",
+        });
         ltask.addIncludePath(b.path(ltask_src_path));
         var dir = try std.fs.cwd().openDir(ltask_src_path, .{ .iterate = true });
         defer dir.close();
