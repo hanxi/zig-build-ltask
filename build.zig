@@ -12,20 +12,23 @@ pub var ltask_base_path: []const u8 = ".";
 pub fn build(b: *std.Build) !void {
     for (targets) |t| {
         const target = b.resolveTargetQuery(t);
-        const ltask = b.addSharedLibrary(.{
+        const ltask = b.addLibrary(.{
             .name = "ltask",
-            .target = target,
-            .optimize = .ReleaseSafe,
+            .linkage = .dynamic,
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = .ReleaseSafe,
+            }),
         });
 
         ltask.linkLibC();
         ltask.linker_allow_shlib_undefined = true;
 
-        var flags_arr = std.ArrayList([]const u8).init(b.allocator);
-        defer flags_arr.deinit();
+        var flags_arr = std.ArrayList([]const u8){};
+        defer flags_arr.deinit(b.allocator);
 
-        var c_source_files = std.ArrayList([]const u8).init(b.allocator);
-        defer c_source_files.deinit();
+        var c_source_files = std.ArrayList([]const u8){};
+        defer c_source_files.deinit(b.allocator);
 
         switch (target.result.os.tag) {
             .windows => {
@@ -35,12 +38,12 @@ pub fn build(b: *std.Build) !void {
             .linux => {
                 ltask.linkSystemLibrary("pthread");
 
-                try flags_arr.append("-fPIC");
+                try flags_arr.append(b.allocator, "-fPIC");
             },
             .macos => {
-                try flags_arr.append("-fPIC");
-                try flags_arr.append("-dynamiclib");
-                try flags_arr.append("-undefined dynamic_lookup");
+                try flags_arr.append(b.allocator, "-fPIC");
+                try flags_arr.append(b.allocator, "-dynamiclib");
+                try flags_arr.append(b.allocator, "-undefined dynamic_lookup");
             },
             else => {
                 @panic("Unsupported OS");
@@ -66,7 +69,7 @@ pub fn build(b: *std.Build) !void {
             }
             const file_name = entry.name;
             if (std.mem.endsWith(u8, file_name, ".c")) {
-                try c_source_files.append(b.pathJoin(&.{file_name}));
+                try c_source_files.append(b.allocator, b.pathJoin(&.{file_name}));
             }
         }
         ltask.addCSourceFiles(.{
